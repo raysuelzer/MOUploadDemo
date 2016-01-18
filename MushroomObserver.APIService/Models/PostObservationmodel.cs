@@ -1,4 +1,6 @@
-﻿namespace MushroomObserver.APIService.Models
+﻿using System.Collections.Specialized;
+
+namespace MushroomObserver.APIService.Models
 {
     public class PostObservationModel
     {

@@ -1,142 +1,85 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
-using System.Xml;
-using System.Xml.Serialization;
 using MushroomObserver.APIService.Models;
 using RestSharp;
+using RestSharp.Contrib;
 
 namespace MushroomObserver.APIService.Services
 {
     public class MushroomObserverApiService
     {
-        private RestClient _restClient;
-        public MushroomObserverApiService()
+        private RestClient RestClient { get; }
+
+        private string ApiKey { get; }
+
+        private string Endpoint { get; }
+        public MushroomObserverApiService(Uri endpoint, string apiKey)
         {
-            _restClient = new RestClient("http://mushroomobserver.org/api");
+            Endpoint = endpoint.AbsoluteUri;
+            RestClient = new RestClient(endpoint);
+            ApiKey = apiKey;
         }
 
         ////api/observations
-        
-        //[GET]
-        public response GetObservations(Dictionary<string, string> parameters)
-        {
-            var request = new RestRequest("observations", Method.GET);
-            request.AddParameter("detail", "high"); // replaces matching token in request.Resource
-            foreach (var param in parameters)
-            {
-                request.AddParameter(param.Key, param.Value);
-            }
-
-            var response = _restClient.Execute(request);
-            try
-            {
-                return response.Content.ParseXML<response>();
-            }
-            catch(Exception e)
-            {
-                Console.WriteLine(e.Message);
-                return null;
-            }
-        }
-
-        public responseResultsResult GetObservationById(string observationId)
-        {
-            var dictionary = new Dictionary<string, string>();
-            dictionary.Add("id", observationId);
-            var response = GetObservations(dictionary);
-
-            try
-            {
-                return response.results.result[0];
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        public List<int> GetObservationImages(int id)
-        {
-            var request = new RestRequest("observations", Method.GET);
-            request.AddParameter("id", id); // replaces matching token in request.Resource
-            request.AddParameter("detail", "high"); // replaces matching token in request.Resource
-           
-
-            // execute the request
-            var response = _restClient.Execute(request);
-            var data = response.Content.ParseXML<response>();
-            try
-            {
-                var images = data.results.result[0].images.image.ToList().Select(p => (int) p.id).ToList();
-                images.Add((int) data.results.result[0].primary_image.id);
-                return images;
-            }
-            catch
-            {
-                return Enumerable.Empty<int>().ToList();
-            }
-        }
-
-        public CreateObservationResponse CreateObservation(string apiKey, PostObservationModel model)
+        public CreateObservationResponse CreateObservation(PostObservationModel model)
         {
             if (String.IsNullOrWhiteSpace(model.Name))
                 model.Name = "Fungi";
-                var postUri = "observations?api_key=" + apiKey;
-                postUri += "&date=" + model.Date;
-                postUri += "&location=" + model.Location;
-                postUri += "&notes=" + model.Notes;
-                postUri += "&latitude=" + model.Latitude;
-                postUri += "&longitude=" + model.Longitude;
-                postUri += "&has_specimen=" + model.HasSpecimen;
-                postUri += "&name=" + model.Name;
-                postUri += "&vote=" + model.Confidence;
-                postUri += "&log=no";
 
-                var request = new RestRequest(postUri, Method.POST);
-                var response = _restClient.Execute(request);
+            var postUri = "observations?" + ConstructQueryString(model);
 
-                try
+
+            var request = new RestRequest(postUri, Method.POST);
+            var response = RestClient.Execute(request);
+
+
+            var result = response.Content.ParseXML<XMLResponseModels.ApiResponse>();
+
+            if (result.Errors != null)
+            {
+                return new CreateObservationResponse()
                 {
-                    var result = response.Content.ParseXML<response>();
-                    var observationId = result.results.result[0].id;  //will fail here if it was not created correctly.
-                    return new CreateObservationResponse()
-                    {
-                        Success = true,
-                        Message = observationId.ToString()
-                    };
-
-                }
-                catch
-                {
-                    var result = response.Content.ParseXML<errorResponse>();
-                    if (result.errors.error.code.Contains("AmbiguousName"))
-                    {
-                        var amibDetails = result.errors.error.details;
-                            amibDetails = amibDetails.Remove(amibDetails.LastIndexOf('.'));
-                        return new CreateObservationResponse()
-                        {
-                            Success = false,
-                            IsAmbiguous = true,
-                            Message = "Name is ambiguous",
-                            AmbiguousMatches = amibDetails.Substring(amibDetails.IndexOf(", matches ") + 10).Split('/').Select(x => x.Trim(' ')).ToArray()
-                        };
-                    }
-                    return null;
-                }
+                    Success = false,
+                    Message = result.Errors.Items.FirstOrDefault()?.Details
+                };
+            }
+            return new CreateObservationResponse()
+            {
+                Success = true,
+                Message = result.Results?.Items?.FirstOrDefault()?.Id.ToString()
+            };
         }
 
-        public void ProposeName(string apiKey, string observationId, string proposedName, string vote, string reason)
+        private string ConstructQueryString(PostObservationModel model)
         {
-            //var request = new RestRequest(postUri, Method.POST);
-            //var response = _restClient.Execute(request);
+
+            var queryParams = new NameValueCollection();
+            queryParams.Add("api_key", ApiKey);
+            queryParams.Add("date", model.Date);
+            queryParams.Add("location", model.Location);
+            queryParams.Add("notes", model.Notes);
+            queryParams.Add("has_specimen", model.HasSpecimen);
+            queryParams.Add("name", model.Name);
+            queryParams.Add("vote", model.Confidence);
+            queryParams.Add("log", "no");
+
+            var items = new List<string>();
+
+            foreach (string name in queryParams)
+            {
+                items.Add(string.Concat(name, "=", HttpUtility.UrlEncode(queryParams[name])));
+            }
+
+            return string.Join("&", items);
         }
-        
+
         ///api/image
-        public long UploadImage(string apiKey, string observationId, DateTime date, string filename, string filePath)
+        public int UploadImage(string observationId, string filePath)
         {
             try
             {
@@ -151,10 +94,11 @@ namespace MushroomObserver.APIService.Services
                     }
                 }
 
-                var postUri = "images?api_key=" + apiKey;
+                var postUri = "images?api_key=" + ApiKey;
                 postUri += "&observations=" + observationId;
 
-                var request = (HttpWebRequest) WebRequest.Create("http://mushroomobserver.org/api/" + postUri);
+
+                var request = (HttpWebRequest)WebRequest.Create(Endpoint + "/" + postUri);
                 request.Method = "POST";
                 request.Headers.Add("Content-MD5", md5Value);
                 request.ContentLength = data.Length;
@@ -166,33 +110,13 @@ namespace MushroomObserver.APIService.Services
 
                 WebResponse myWebResponse = request.GetResponse();
                 var responseBody = new StreamReader(myWebResponse.GetResponseStream()).ReadToEnd();
-                var result = responseBody.ParseXML<response>();
-                return result.results.result[0].id;
+                var result = responseBody.ParseXML<XMLResponseModels.ApiResponse>();
+                return result.Results.Items[0].Id;
             }
             catch
             {
                 return 0;
             }
-        }
-    }
-
-    public static class ParseHelpers
-    {
-
-        public static Stream ToStream(this string @this)
-        {
-            var stream = new MemoryStream();
-            var writer = new StreamWriter(stream);
-            writer.Write(@this);
-            writer.Flush();
-            stream.Position = 0;
-            return stream;
-        }
-
-        public static T ParseXML<T>(this string @this) where T : class
-        {
-            var reader = XmlReader.Create(@this.Trim().ToStream(), new XmlReaderSettings() { ConformanceLevel = ConformanceLevel.Document });
-            return new XmlSerializer(typeof(T)).Deserialize(reader) as T;
         }
     }
 }

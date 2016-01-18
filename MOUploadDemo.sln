@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.22823.1
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MushroomObserver.APIService", "MushroomObserver.APIService\MushroomObserver.APIService.csproj", "{B68F1A7A-950E-4A3C-B0DB-056CCFE31C9F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MushroomObserver.ConsoleApp", "MushroomObserver.ConsoleApp\MushroomObserver.ConsoleApp.csproj", "{A7A7D12C-CE6D-4853-9BF5-4999EACAEB27}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MushroomObserver.Tests", "MushroomObserver.Tests\MushroomObserver.Tests.csproj", "{B37BC39A-68EB-4722-914B-D64ADE61ABE6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{A7A7D12C-CE6D-4853-9BF5-4999EACAEB27}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A7A7D12C-CE6D-4853-9BF5-4999EACAEB27}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A7A7D12C-CE6D-4853-9BF5-4999EACAEB27}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B37BC39A-68EB-4722-914B-D64ADE61ABE6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B37BC39A-68EB-4722-914B-D64ADE61ABE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B37BC39A-68EB-4722-914B-D64ADE61ABE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B37BC39A-68EB-4722-914B-D64ADE61ABE6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

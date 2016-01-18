@@ -12,48 +12,13 @@ namespace MushroomObserver.ConsoleApp
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Upload Observation Demo");
-            var _uploadService = new MushroomObserverApiService();
+            Console.WriteLine("Enter your apikey and press enter");
 
-            var observationToCreate = new PostObservationModel()
-            {
-                Altitude = "0",
-                Confidence = "3.0",
-                Date = "2015-08-06",
-                HasSpecimen = "false", //this might be a 0 or 1? I can't remember
-                Latitude = "40.0",
-                Longitude = "40.0",
-                Location = "Anywhere, CA, USA",
-                Name = "Conocybe Apala",
-                Notes = "This is a test"
-            };
+            string key = Console.ReadLine();
 
-            var response = _uploadService.CreateObservation("myapikey", observationToCreate);
-
-            if (response.Success)
-            {
-                var createdObservationId = response.Message;
-                _uploadService.UploadImage("myapiKey", createdObservationId, DateTime.Now, "myimage.jpg",
-                    @"c:\my_images");
-            }
-
-            else
-            {
-                Console.WriteLine("There as an error!");
-                Console.WriteLine(response.Message);
-                if (response.IsAmbiguous)
-                {
-                    Console.WriteLine("looks likes this name is ambiguous, did you mean:");
-                    foreach (var match in response.AmbiguousMatches)
-                    {
-                        Console.WriteLine(match);
-                    }
-                }
-
-            }
-
-            Console.ReadKey();
-
+            var uploader = new NamaBulkUploadService("3bi7qrfiq2gnag616conwv3qbz9fvf5p");
+            uploader.Run();
+            Console.ReadLine();
         }
     }
 }
