@@ -12,13 +12,22 @@ namespace MushroomObserver.ConsoleApp
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Enter your apikey and press enter");
+            try
+            {
+                Console.WriteLine("Enter your apikey and press enter");
 
-            string key = Console.ReadLine();
+                string key = Console.ReadLine();
 
-            var uploader = new NamaBulkUploadService("3bi7qrfiq2gnag616conwv3qbz9fvf5p");
-            uploader.Run();
-            Console.ReadLine();
+                var uploader = new NamaBulkUploadService(key);
+                uploader.Run();
+                Console.ReadLine();
+
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            
         }
     }
 }
